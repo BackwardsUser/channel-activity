@@ -18,14 +18,27 @@ function debugLog(...data: any[]) {
     console.log(...data);
 }
 
+function setVoiceStatus(channel: VoiceBasedChannel, clear: boolean, status?: string) {
+  console.log(clear, status);
+  put(
+    `https://discord.com/api/v10/channels/${channel.id}/voice-status`,
+    { status: clear ? "" : `Playing: ${status}` },
+    {
+      headers: {
+        Authorization: `Bot ${client.token}`,
+      },
+    }
+  );
+}
+
 function updateActivity(channel: VoiceBasedChannel): void {
   const members = channel?.members;
 
-  console.log(members)
-
-  if (!members || members.size) {
-    if (channel.id && jobs.get(channel.id))
+  if (!members || members.size === 0) {
+    if (channel.id && jobs.get(channel.id)) {
       jobs.delete(channel.id);
+      setVoiceStatus(channel, true);
+    }
     return;
   }
 
@@ -56,17 +69,14 @@ function updateActivity(channel: VoiceBasedChannel): void {
     }
   }
 
-  debugLog(`Updating ID: ${channel.id}`);
+  console.log(maxKey)
 
-  put(
-    `https://discord.com/api/v10/channels/${channel.id}/voice-status`,
-    { status: `Playing: ${maxKey}` },
-    {
-      headers: {
-        Authorization: `Bot ${client.token}`,
-      },
-    }
-  );
+  if (maxKey !== "none")
+    setVoiceStatus(channel, false, maxKey);
+  else
+    setVoiceStatus(channel, true);
+
+  debugLog(`Updating ID: ${channel.id}`);
 }
 
 function createInterval(channel: VoiceBasedChannel, guild: Guild) {
